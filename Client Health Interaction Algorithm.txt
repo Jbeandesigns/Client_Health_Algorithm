@@ -1,0 +1,605 @@
+﻿import React, { useState } from 'react';
+
+
+const ClientHealthAlgorithm = () => {
+  // State for tracking selected metric and root cause
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [selectedRootCause, setSelectedRootCause] = useState(null);
+  const [showDeploymentGuide, setShowDeploymentGuide] = useState(false);
+  
+  // Define metrics, their thresholds, and related information
+  const metrics = {
+    fillRate: {
+      title: "Fill Rate",
+      description: "Percentage of posted shifts that are filled by professionals.",
+      thresholds: {
+        red: "< 40%",
+        yellow: "40-70%",
+        green: "> 70%"
+      },
+      rootCauses: [
+        {
+          id: "fr1",
+          name: "Increase in posted shifts outpacing pro pool expansion",
+          clientInterventions: [
+            "Review shift posting strategy to align with current pro pool capacity",
+            "Implement phased posting approach (post highest priority shifts first)",
+            "Collaborate on shift prioritization matrix to focus on critical needs"
+          ],
+          internalInterventions: [
+            "Run targeted recruitment campaigns for the client's region/specialties",
+            "Analyze shift claiming patterns to optimize posting times",
+            "Create a geographical heat map of professional availability"
+          ]
+        },
+        {
+          id: "fr2",
+          name: "Low active professional pool",
+          clientInterventions: [
+            "Improve facility onboarding experience for new professionals",
+            "Address any facility-specific issues reported by professionals",
+            "Consider adjusting shift rates for hard-to-fill positions"
+          ],
+          internalInterventions: [
+            "Deploy marketing team for on-site recruitment at nearby locations",
+            "Implement reactivation campaign for previously active professionals",
+            "Create targeted incentives for professionals in underserved areas"
+          ]
+        },
+        {
+          id: "fr3",
+          name: "Low shift engagement per professional",
+          clientInterventions: [
+            "Review and address any reported facility experience issues",
+            "Ensure consistent shift availability for regular professionals",
+            "Consider longer shift blocks when appropriate (e.g., 3 consecutive days)"
+          ],
+          internalInterventions: [
+            "Implement '6+ Club' recognition program for frequent workers",
+            "Add micro-bonus stacking for consecutive shifts",
+            "Analyze and address cancellation patterns from professionals"
+          ]
+        },
+        {
+          id: "fr4",
+          name: "Poor specialty/skill matching",
+          clientInterventions: [
+            "Refine specialty requirements to expand candidate pool when possible",
+            "Review and standardize unit-specific requirements",
+            "Consider cross-training opportunities for professionals"
+          ],
+          internalInterventions: [
+            "Update specialty matching algorithm for better targeting",
+            "Implement specialty-specific recruitment campaigns",
+            "Review professional specialties verification process"
+          ]
+        }
+      ]
+    },
+    facilityCancellations: {
+      title: "Facility Cancellation Rate",
+      description: "Percentage of filled shifts that are cancelled by the facility.",
+      thresholds: {
+        red: "Bottom quartile (> 15%)",
+        yellow: "Mid quartile (7-15%)",
+        green: "Top quartile (< 7%)"
+      },
+      rootCauses: [
+        {
+          id: "fc1",
+          name: "Overly aggressive shift posting",
+          clientInterventions: [
+            "Implement a more precise shift needs assessment process",
+            "Create multi-stage posting strategy based on historical fill patterns",
+            "Establish regular cadence for reviewing upcoming shift needs"
+          ],
+          internalInterventions: [
+            "Build shift posting forecasting tool based on historical data",
+            "Develop training for client on optimal posting strategies",
+            "Create dashboard showing cancellation impact on pro engagement"
+          ]
+        },
+        {
+          id: "fc2",
+          name: "Filled with internal staff after posting",
+          clientInterventions: [
+            "Establish clear timeline for removing shifts filled internally",
+            "Implement automated notification system for internal fills",
+            "Create accountability for timely shift management"
+          ],
+          internalInterventions: [
+            "Develop rapid shift reallocation system for cancelled shifts",
+            "Track patterns of late cancellations by units/departments",
+            "Create incentives for clients to maintain low cancellation rates"
+          ]
+        },
+        {
+          id: "fc3",
+          name: "Reduced patient volume/caseload",
+          clientInterventions: [
+            "Implement flexible staffing tiers based on census predictions",
+            "Create earlier notification protocols for low census situations",
+            "Develop standby shift options for fluctuating needs"
+          ],
+          internalInterventions: [
+            "Analyze historical cancellation patterns vs. patient census",
+            "Create predictive models for seasonal fluctuations",
+            "Develop standby professional pool for rapid redeployment"
+          ]
+        },
+        {
+          id: "fc4",
+          name: "Changed unit/department needs",
+          clientInterventions: [
+            "Implement unit-by-unit needs assessment process",
+            "Create flexible specialty assignment capabilities",
+            "Develop cross-training programs for floating capabilities"
+          ],
+          internalInterventions: [
+            "Update specialty verification to accommodate float positions",
+            "Develop specialized float pool with multi-specialty capabilities",
+            "Create incentives for professionals with multiple specialties"
+          ]
+        }
+      ]
+    },
+    proCancellations: {
+      title: "Professional Cancellation Rate",
+      description: "Percentage of claimed shifts that are cancelled by professionals.",
+      thresholds: {
+        red: "> 15%",
+        yellow: "10-15%",
+        green: "< 10%"
+      },
+      rootCauses: [
+        {
+          id: "pc1",
+          name: "Poor facility experience",
+          clientInterventions: [
+            "Review and address professional feedback on facility environment",
+            "Implement standardized onboarding and orientation processes",
+            "Create a pro-friendly culture with clear communication channels"
+          ],
+          internalInterventions: [
+            "Survey professionals for specific facility experience issues",
+            "Track unit-specific cancellation patterns",
+            "Create a facility improvement scorecard based on pro feedback"
+          ]
+        },
+        {
+          id: "pc2",
+          name: "Lack of clear expectations",
+          clientInterventions: [
+            "Develop detailed unit-specific role descriptions",
+            "Create pre-shift communication protocol for shift details",
+            "Ensure consistent assignment practices across shifts"
+          ],
+          internalInterventions: [
+            "Implement pre-first shift orientation emails",
+            "Create facility-specific professional guides",
+            "Develop cancellation prevention communications strategy"
+          ]
+        },
+        {
+          id: "pc3",
+          name: "Scheduling conflicts",
+          clientInterventions: [
+            "Maintain consistent shift schedules when possible",
+            "Communicate schedule changes with maximum advance notice",
+            "Create flexible shift options (4, 8, 12 hours)"
+          ],
+          internalInterventions: [
+            "Implement cancellation risk scoring for high-risk shifts",
+            "Create 'Commit to Complete' bonus incentive",
+            "Develop escalating warnings for repeat cancellations"
+          ]
+        },
+        {
+          id: "pc4",
+          name: "Competing opportunities",
+          clientInterventions: [
+            "Review shift rates for competitiveness in market",
+            "Create loyalty incentives for consistent professionals",
+            "Develop premium shift options for hard-to-fill positions"
+          ],
+          internalInterventions: [
+            "Analyze competitive rate environment in region",
+            "Implement reward system for shift completion streaks",
+            "Create early access to shifts for reliable professionals"
+          ]
+        }
+      ]
+    },
+    proChurn: {
+      title: "Professional Churn",
+      description: "Rate at which professionals stop accepting shifts.",
+      thresholds: {
+        red: "Bottom quartile",
+        yellow: "25-50th percentile",
+        green: "Top quartile"
+      },
+      rootCauses: [
+        {
+          id: "ch1",
+          name: "Limited shift opportunities",
+          clientInterventions: [
+            "Create more consistent shift posting schedule",
+            "Develop advance scheduling for predictable needs",
+            "Consider expanding CareRev usage to additional units/specialties"
+          ],
+          internalInterventions: [
+            "Analyze active pro to shift ratio for healthy balance",
+            "Create shift diversity strategy to accommodate various schedules",
+            "Implement minimum shift guarantees for top professionals"
+          ]
+        },
+        {
+          id: "ch2",
+          name: "Competitive pay issues",
+          clientInterventions: [
+            "Review current rate structure against market benchmarks",
+            "Create premium rate structure for high-demand shifts",
+            "Implement loyalty bonuses for consistent professionals"
+          ],
+          internalInterventions: [
+            "Perform quarterly competitive rate analysis",
+            "Develop tiered professional classification with rate benefits",
+            "Create seasonal rate adjustment recommendations"
+          ]
+        },
+        {
+          id: "ch3",
+          name: "Poor facility experience",
+          clientInterventions: [
+            "Conduct exit interviews with churned professionals",
+            "Implement professional feedback system for continuous improvement",
+            "Create standardized professional support protocols"
+          ],
+          internalInterventions: [
+            "Track facility ratings from professional feedback",
+            "Develop facility improvement action plans",
+            "Create professional advocacy program for issue resolution"
+          ]
+        },
+        {
+          id: "ch4",
+          name: "Changed location/availability",
+          clientInterventions: [
+            "Create flexible scheduling options",
+            "Implement seasonal availability tracking",
+            "Develop return incentives for previously active professionals"
+          ],
+          internalInterventions: [
+            "Implement professional dormancy tracking system",
+            "Create reactivation campaign protocols",
+            "Develop geographical relocation tracking"
+          ]
+        }
+      ]
+    }
+  };
+
+
+  // Handler functions
+  const handleMetricSelect = (metric) => {
+    setSelectedMetric(metric);
+    setSelectedRootCause(null);
+  };
+
+
+  const handleRootCauseSelect = (rootCause) => {
+    setSelectedRootCause(rootCause);
+  };
+
+
+  const handleReset = () => {
+    setSelectedRootCause(null);
+    setSelectedMetric(null);
+  };
+
+
+  const toggleDeploymentGuide = () => {
+    setShowDeploymentGuide(!showDeploymentGuide);
+  };
+
+
+  // Render functions
+  const renderDeploymentGuide = () => {
+    if (!showDeploymentGuide) return null;
+
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-lg max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Deployment Guide</h2>
+              <button 
+                onClick={toggleDeploymentGuide}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-bold text-blue-800 mb-2">Recommended: GitHub Pages Deployment</h3>
+                <p className="text-sm text-blue-700 mb-3">This is the easiest and most reliable deployment method.</p>
+                
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 1: Create GitHub Repository</h4>
+                    <ul className="text-sm space-y-1 ml-4">
+                      <li>• Go to <a href="https://github.com" className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">GitHub</a> and create a new repository</li>
+                      <li>• Name it "client-health-algorithm"</li>
+                      <li>• Make it public and initialize with README</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 2: Create React App</h4>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      npx create-react-app client-health-algorithm<br/>
+                      cd client-health-algorithm
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 3: Configure for GitHub Pages</h4>
+                    <p className="text-sm mb-2">Add to package.json:</p>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      "homepage": "https://yourusername.github.io/client-health-algorithm"
+                    </div>
+                    <p className="text-sm mt-2 mb-2">Install gh-pages:</p>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      npm install --save gh-pages
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 4: Add Deploy Scripts</h4>
+                    <p className="text-sm mb-2">Add to package.json scripts:</p>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      "predeploy": "npm run build",<br/>
+                      "deploy": "gh-pages -d build"
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 5: Replace App.js</h4>
+                    <p className="text-sm">Copy the entire React component code from this algorithm and replace the contents of src/App.js</p>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 6: Deploy</h4>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      git add .<br/>
+                      git commit -m "Initial commit"<br/>
+                      git remote add origin https://github.com/yourusername/client-health-algorithm.git<br/>
+                      git push -u origin main<br/>
+                      npm run deploy
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="font-bold text-purple-800 mb-2">Alternative: Embed in Webflow</h3>
+                <p className="text-sm text-purple-700 mb-3">If you want to embed this in your existing Webflow site.</p>
+                
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 1: Deploy to GitHub Pages First</h4>
+                    <p className="text-sm">Complete the GitHub Pages deployment above first.</p>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold mb-2">Step 2: Add iframe to Webflow</h4>
+                    <p className="text-sm mb-2">Add an Embed element in Webflow with this code:</p>
+                    <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                      &lt;iframe <br/>
+                      &nbsp;&nbsp;src="https://yourusername.github.io/client-health-algorithm" <br/>
+                      &nbsp;&nbsp;width="100%" <br/>
+                      &nbsp;&nbsp;height="800px" <br/>
+                      &nbsp;&nbsp;frameborder="0"<br/>
+                      &gt;&lt;/iframe&gt;
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 className="font-bold text-green-800 mb-2">Getting the Source Code</h3>
+                <p className="text-sm text-green-700 mb-3">To get the complete React component code:</p>
+                
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-semibold mb-2">Right-click Method</h4>
+                  <ul className="text-sm space-y-1 ml-4">
+                    <li>• Right-click anywhere on this algorithm interface</li>
+                    <li>• Select "View Page Source" or "Inspect Element"</li>
+                    <li>• Look for the React component code in the source</li>
+                    <li>• Copy the entire component code to use in your React app</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 className="font-bold text-yellow-800 mb-2">Need Help?</h3>
+                <p className="text-sm text-yellow-700">If you need assistance with deployment:</p>
+                <ul className="text-sm space-y-1 ml-4 mt-2">
+                  <li>• Contact your IT team for GitHub access and setup</li>
+                  <li>• Consider hiring a developer for custom integration</li>
+                  <li>• Use services like Netlify or Vercel as alternatives to GitHub Pages</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  const renderMetricSelection = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800">Select a Metric in Yellow or Red Status</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(metrics).map(([key, metric]) => (
+            <button
+              key={key}
+              onClick={() => handleMetricSelect(key)}
+              className="flex flex-col items-center bg-white border rounded-lg p-4 hover:bg-blue-50 transition-colors"
+            >
+              <div className="w-full flex justify-between items-center mb-2">
+                <span className="font-bold text-lg">{metric.title}</span>
+                <div className="flex space-x-2">
+                  <span className="h-4 w-4 rounded-full bg-red-500" title="Red threshold"></span>
+                  <span className="h-4 w-4 rounded-full bg-yellow-400" title="Yellow threshold"></span>
+                  <span className="h-4 w-4 rounded-full bg-green-500" title="Green threshold"></span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 text-left w-full">{metric.description}</p>
+              <div className="mt-3 w-full">
+                <div className="text-xs text-gray-500 mb-1">Thresholds:</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-red-100 p-1 rounded text-xs text-center">
+                    Red: {metric.thresholds.red}
+                  </div>
+                  <div className="bg-yellow-100 p-1 rounded text-xs text-center">
+                    Yellow: {metric.thresholds.yellow}
+                  </div>
+                  <div className="bg-green-100 p-1 rounded text-xs text-center">
+                    Green: {metric.thresholds.green}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+
+  const renderRootCauseSelection = () => {
+    if (!selectedMetric) return null;
+    
+    const metric = metrics[selectedMetric];
+    
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Select Root Cause for {metric.title}</h2>
+          <button 
+            onClick={handleReset} 
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back to Metrics
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4 mt-4">
+          {metric.rootCauses.map(cause => (
+            <button
+              key={cause.id}
+              onClick={() => handleRootCauseSelect(cause)}
+              className="flex flex-col items-start bg-white border rounded-lg p-4 hover:bg-blue-50 transition-colors text-left"
+            >
+              <span className="font-medium text-gray-800">{cause.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+
+  const renderInterventions = () => {
+    if (!selectedRootCause) return null;
+    
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Intervention Recommendations</h2>
+          <button 
+            onClick={() => setSelectedRootCause(null)} 
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back to Root Causes
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <h3 className="font-bold text-blue-800 mb-3">Client Interventions</h3>
+            <ul className="space-y-2">
+              {selectedRootCause.clientInterventions.map((intervention, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-blue-500 mr-2">•</span>
+                  <span>{intervention}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <h3 className="font-bold text-purple-800 mb-3">Internal Considerations</h3>
+            <ul className="space-y-2">
+              {selectedRootCause.internalInterventions.map((intervention, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-purple-500 mr-2">•</span>
+                  <span>{intervention}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        
+        <div className="mt-6 bg-gray-50 p-4 rounded-lg border">
+          <h3 className="font-bold text-gray-700 mb-2">Implementation Notes</h3>
+          <p className="text-sm text-gray-600">
+            These interventions are designed to address {selectedRootCause.name.toLowerCase()} as a root cause for {metrics[selectedMetric].title.toLowerCase()} issues. For best results, implement client interventions in collaboration with the facility leadership team and track progress over 45-60 days. Internal interventions should be coordinated with appropriate teams (Marketing, Professional Success, Product).
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="bg-gray-100 min-h-screen p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-blue-600 text-white rounded-lg shadow p-6 mb-6">
+          <h1 className="text-2xl font-bold">Client Health Intervention Algorithm</h1>
+          <p className="mt-2">
+            Use this tool to identify appropriate interventions when client health metrics fall into yellow or red status.
+            Select a metric to begin.
+          </p>
+        </div>
+        
+        {!selectedMetric && renderMetricSelection()}
+        {selectedMetric && !selectedRootCause && renderRootCauseSelection()}
+        {selectedRootCause && renderInterventions()}
+        
+        <div className="mt-6 bg-white rounded-lg shadow p-4">
+          <h3 className="font-bold text-gray-700 mb-2">Deployment Instructions</h3>
+          <p className="text-sm text-gray-600">
+            This tool can be deployed via GitHub Pages or embedded as an iframe in your internal Webflow site. 
+            For detailed instructions on deployment options, click the "View Deployment Guide" button below.
+          </p>
+          <button 
+            className="mt-3 bg-gray-800 hover:bg-gray-700 text-white py-2 px-4 rounded"
+            onClick={toggleDeploymentGuide}
+          >
+            View Deployment Guide
+          </button>
+        </div>
+        
+        {renderDeploymentGuide()}
+      </div>
+    </div>
+  );
+};
+
+
+export default ClientHealthAlgorithm;
